@@ -47,5 +47,9 @@ src/
 │   ├── useMouseSelbstgebaut.ts     # ohne VueUse: Listener von Hand
 │   ├── useCounter.ts               # eigenes Composable im VueUse-Stil
 │   ├── useCounter.test.ts          # Vitest-Tests
+│   ├── useHandGesture.ts           # eigenes Composable: Webcam-Bild → Hand-Punkte → Geste
+│   ├── gestures.ts                 # reine Gesten-Logik (ohne Vue/Browser)
+│   ├── gestures.test.ts            # Vitest-Tests der Gesten
+│   └── useTheme.ts                 # Dark Mode, geteilt per createSharedComposable
 └── style.css                       # Farben als CSS-Variablen (Light/Dark)
 ```
