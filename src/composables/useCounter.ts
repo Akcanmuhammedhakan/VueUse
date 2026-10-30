@@ -1,6 +1,6 @@
 import { computed, ref, toValue, type MaybeRefOrGetter } from 'vue'
 
-// Eigenes Composable nach VueUse-Vorbild:
+// Eigenes Composable nach VueUse-Vorbild (Nachbau von useCounter aus @vueuse/shared):
 // 1. Name beginnt mit "use"
 // 2. Optionen dürfen fester Wert, Ref oder Getter sein (MaybeRefOrGetter + toValue)
 // 3. Rückgabe: reaktiver Zustand + Funktionen als Objekt (destrukturierbar)
