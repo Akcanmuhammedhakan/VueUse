@@ -1,15 +1,31 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { HandLandmarker } from '@mediapipe/tasks-vision'
-import { useLocalStorage, useRafFn, useSpeechSynthesis, useUserMedia, useWindowSize } from '@vueuse/core'
+import { useDevicesList, useLocalStorage, useRafFn, useSpeechSynthesis, useUserMedia, useWindowSize } from '@vueuse/core'
 import { useHandGesture } from '../../composables/useHandGesture'
 import { useTheme } from '../../composables/useTheme'
 import type { Gesture } from '../../composables/gestures'
 
-// 1) Kamera – VueUse
-const { stream, enabled: kameraAn } = useUserMedia({
-  constraints: { video: { width: 640, height: 480, facingMode: 'user' }, audio: false },
+// 1) Kamera – VueUse: Geräteliste + Stream; gewählte Kamera wird gemerkt
+const { videoInputs, ensurePermissions } = useDevicesList()
+const kameraId = useLocalStorage('demo-kamera', '')
+const constraints = ref<MediaStreamConstraints>({ video: true, audio: false })
+watch(
+  kameraId,
+  (id) => {
+    constraints.value = {
+      video: { width: 640, height: 480, ...(id ? { deviceId: { exact: id } } : { facingMode: 'user' }) },
+      audio: false,
+    }
+  },
+  { immediate: true },
+)
+const { stream, enabled: kameraAn } = useUserMedia({ constraints, autoSwitch: true })
+// Gerätenamen gibt der Browser erst nach der Kamera-Erlaubnis heraus
+watch(stream, (s) => {
+  if (s) ensurePermissions()
 })
+const aktiveKamera = computed(() => stream.value?.getVideoTracks()[0]?.label ?? '')
 const video = useTemplateRef<HTMLVideoElement>('video')
 watchEffect(() => {
   if (video.value) video.value.srcObject = stream.value ?? null
@@ -166,6 +182,15 @@ const status = computed(() => {
         <span class="status" :class="status.klasse">{{ status.text }}</span>
       </div>
       <p v-if="error" class="hinweis">{{ error }}</p>
+      <label class="auswahl">
+        Kamera
+        <select v-model="kameraId">
+          <option value="">Standard{{ aktiveKamera && !kameraId ? ` (${aktiveKamera})` : '' }}</option>
+          <option v-for="d in videoInputs" :key="d.deviceId" :value="d.deviceId">
+            {{ d.label || 'Kamera ' + (videoInputs.indexOf(d) + 1) }}
+          </option>
+        </select>
+      </label>
 
       <ul class="gesten">
         <li v-for="g in gesten" :key="g.id" :class="{ aktiv: gesture === g.id }">
@@ -267,6 +292,21 @@ canvas {
 .status.laedt {
   background: var(--accent-bg);
   color: var(--accent-text);
+}
+.auswahl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+}
+.auswahl select {
+  flex: 1;
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
 }
 .gesten {
   list-style: none;
