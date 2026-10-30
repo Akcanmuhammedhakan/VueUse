@@ -3,14 +3,14 @@
 Demo-App zur Präsentation **„VueUse“** im Modul *Komponentenbasierte Entwicklung* (HTW Berlin, WiSe 2026/27).
 Autor: Muhammed Hakan Akcan
 
-Stack: Vue 3 · TypeScript · Vite · [@vueuse/core](https://vueuse.org) v15 · Vitest
+Stack: Vue 3 · TypeScript · Vite · [@vueuse/core](https://vueuse.org) v15 · Vitest · [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) (läuft lokal im Browser, offline)
 
 ## Starten
 
 ```bash
 npm install
 npm run dev      # App auf http://localhost:5173
-npm test         # Unit-Tests für das eigene Composable
+npm test         # Unit-Tests: useCounter + Gestenerkennung
 ```
 
 ## Inhalt
@@ -22,6 +22,18 @@ npm test         # Unit-Tests für das eigene Composable
 | 2 | Popup mit Gedächtnis | `useLocalStorage`, `onClickOutside` |
 | 3 | Browser-APIs reaktiv | `useOnline`, `useWindowSize`, `useClipboard` |
 | 4 | Eigenes Composable nach VueUse-Vorbild | eigenes `useCounter`, `useTitle` |
+| 5 | **Finale: Steuerung per Handgeste** (Webcam) | `useUserMedia`, `useRafFn`, `useSpeechSynthesis`, `createSharedComposable`, eigenes `useHandGesture` |
+
+### Gesten (Demo 5)
+
+| Geste | Aktion |
+|---|---|
+| 👆 Zeigefinger | Cursor folgt der Fingerspitze |
+| 🤏 Daumen + Zeigefinger | Klick auf Button unter dem Cursor, Regler ziehen |
+| ✋ Offene Hand 1,2 s halten | Dark Mode umschalten |
+| 👍 Daumen hoch 0,7 s halten | Seite sagt „Danke, ‹Name›!“ |
+
+Modell und WASM-Dateien liegen in `public/mediapipe/` – es wird **kein Internet** benötigt.
 
 ## Projektstruktur
 
@@ -34,6 +46,6 @@ src/
 ├── composables/
 │   ├── useMouseSelbstgebaut.ts     # ohne VueUse: Listener von Hand
 │   ├── useCounter.ts               # eigenes Composable im VueUse-Stil
-│   └── useCounter.test.ts          # Vitest-Tests
+│   ├── useCounter.test.ts          # Vitest-Tests
 └── style.css                       # Farben als CSS-Variablen (Light/Dark)
 ```

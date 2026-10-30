@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { useDark, useToggle } from '@vueuse/core'
 import DemoCard from './components/DemoCard.vue'
 import MausDemo from './components/demos/MausDemo.vue'
 import PopupDemo from './components/demos/PopupDemo.vue'
 import BrowserDemo from './components/demos/BrowserDemo.vue'
 import CounterDemo from './components/demos/CounterDemo.vue'
+import GestureDemo from './components/demos/GestureDemo.vue'
+import { useTheme } from './composables/useTheme'
 
-// Dark Mode in zwei Zeilen: setzt class="dark" auf <html> und merkt sich die Wahl
-const isDark = useDark()
-const toggleDark = useToggle(isDark)
+// Dark Mode: useDark + useToggle, geteilt über createSharedComposable (siehe useTheme.ts)
+const { isDark, toggleDark } = useTheme()
 </script>
 
 <template>
@@ -34,6 +34,14 @@ const toggleDark = useToggle(isDark)
     </DemoCard>
     <DemoCard :nummer="4" titel="Eigenes Composable" :composables="['useCounter (eigen)', 'useTitle']">
       <CounterDemo />
+    </DemoCard>
+    <DemoCard
+      class="breit"
+      :nummer="5"
+      titel="Finale: Steuerung per Handgeste"
+      :composables="['useUserMedia', 'useRafFn', 'useSpeechSynthesis', 'useHandGesture (eigen)']"
+    >
+      <GestureDemo />
     </DemoCard>
   </main>
 </template>
@@ -68,6 +76,9 @@ h1 {
 @media (min-width: 760px) {
   .grid {
     grid-template-columns: 1fr 1fr;
+  }
+  .breit {
+    grid-column: 1 / -1;
   }
 }
 </style>
