@@ -54,3 +54,7 @@ src/
 │   └── useTheme.ts                 # Dark Mode, geteilt per createSharedComposable
 └── style.css                       # Farben als CSS-Variablen (Light/Dark)
 ```
+
+## Präsentation
+
+Die Folien zum Vortrag liegen in [`praesentation/`](praesentation/) als `.pptx` und `.pdf`.
