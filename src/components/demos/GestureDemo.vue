@@ -40,12 +40,13 @@ const name = useLocalStorage('demo-name', '')
 const dankeText = computed(() => (name.value ? `Danke, ${name.value}!` : 'Danke schön!'))
 const { speak, isSupported: sprachausgabe } = useSpeechSynthesis(dankeText, { lang: 'de-DE', rate: 1.05 })
 
-const gesten: { id: Gesture; emoji: string; name: string; aktion: string }[] = [
-  { id: 'pointing', emoji: '👆', name: 'Zeigefinger', aktion: 'Cursor steuern' },
-  { id: 'pinch', emoji: '🤏', name: 'Daumen + Zeigefinger', aktion: 'Klicken / Regler ziehen' },
-  { id: 'pointing', emoji: '⏱️', name: '1 s auf Button zeigen', aktion: 'Klickt auch (ohne Pinch)' },
-  { id: 'open_palm', emoji: '✋', name: 'Offene Hand halten', aktion: 'Dark Mode umschalten' },
-  { id: 'thumbs_up', emoji: '👍', name: 'Daumen hoch halten', aktion: 'Seite bedankt sich' },
+// Pro Geste: welche Composables die Aktion umsetzen (MediaPipe erkennt nur die Hand)
+const gesten: { id: Gesture; emoji: string; name: string; aktion: string; composables: string[] }[] = [
+  { id: 'pointing', emoji: '👆', name: 'Zeigefinger', aktion: 'Cursor steuern', composables: ['useRafFn', 'useWindowSize'] },
+  { id: 'pinch', emoji: '🤏', name: 'Daumen + Zeigefinger', aktion: 'Klicken', composables: ['useRafFn'] },
+  { id: 'pointing', emoji: '⏱️', name: '1 s auf Button zeigen', aktion: 'Klickt auch (ohne Pinch)', composables: ['useRafFn'] },
+  { id: 'open_palm', emoji: '✋', name: 'Offene Hand halten', aktion: 'Dark Mode umschalten', composables: ['useDark', 'useToggle'] },
+  { id: 'thumbs_up', emoji: '👍', name: 'Daumen hoch halten', aktion: 'Seite bedankt sich', composables: ['useSpeechSynthesis', 'useLocalStorage'] },
 ]
 
 // ---- Cursor: folgt der Zeigefingerspitze, geglättet ----
@@ -249,12 +250,21 @@ const status = computed(() => {
         </select>
       </label>
 
+      <div class="herkunft">
+        <div><span class="tag mp">MediaPipe</span> erkennt die Hand (21 Punkte) – <strong>kein VueUse</strong></div>
+        <div><span class="tag eigen">useHandGesture</span> eigenes Composable: macht daraus die Geste</div>
+        <div><span class="tag">useUserMedia</span><span class="tag">useDevicesList</span> Kamera an + auswählen</div>
+      </div>
+
       <ul class="gesten">
         <li v-for="g in gesten" :key="g.name" :class="{ aktiv: gesture === g.id }">
           <span class="emoji">{{ g.emoji }}</span>
           <span class="text">
             <strong>{{ g.name }}</strong>
             <small>{{ g.aktion }}</small>
+            <span class="chips">
+              <code v-for="c in g.composables" :key="c">{{ c }}</code>
+            </span>
           </span>
           <span
             v-if="gesture === g.id && HALTEN_MS[g.id]"
@@ -403,6 +413,41 @@ canvas {
 }
 .text strong {
   color: var(--text-h);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.chips code,
+.tag {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+.tag {
+  margin-right: 4px;
+}
+.tag.mp {
+  background: #e8eaf6;
+  color: #283593;
+}
+.tag.eigen {
+  background: #fff3dc;
+  color: #8a5a00;
+}
+.herkunft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.82rem;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
 }
 .balken {
   position: absolute;
