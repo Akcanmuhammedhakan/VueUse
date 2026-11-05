@@ -14,7 +14,9 @@ export type Gesture = 'none' | 'pinch' | 'thumbs_up' | 'open_palm' | 'pointing' 
 
 const dist = (a: HandPoint, b: HandPoint) => Math.hypot(a.x - b.x, a.y - b.y)
 
-export function classifyGesture(lm: HandPoint[]): Gesture {
+// previous: zuletzt erkannte Geste. Ist schon ein Pinch aktiv, darf der Abstand
+// etwas größer werden, bevor er endet (Hysterese) – sonst flackert der Klick.
+export function classifyGesture(lm: HandPoint[], previous: Gesture = 'none'): Gesture {
   if (lm.length < 21) return 'none'
 
   const wrist = lm[0]
@@ -33,7 +35,8 @@ export function classifyGesture(lm: HandPoint[]): Gesture {
   const thumbOut = dist(lm[4], lm[9]) / size > 0.8
   const thumbAbove = lm[4].y < lm[5].y - 0.3 * size
 
-  if (thumbIndexGap < 0.25 && indexReachesOut) return 'pinch'
+  const pinchGrenze = previous === 'pinch' ? 0.45 : 0.3
+  if (thumbIndexGap < pinchGrenze && indexReachesOut) return 'pinch'
   if (!index && !middle && !ring && !pinky && thumbOut && thumbAbove) return 'thumbs_up'
   if (index && middle && ring && pinky) return 'open_palm'
   if (index && !middle && !ring && !pinky) return 'pointing'

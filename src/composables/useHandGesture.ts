@@ -82,13 +82,15 @@ export function useHandGesture(
       landmarks.value = hand
 
       // Geste erst übernehmen, wenn sie mehrere Bilder stabil ist
-      const raw = hand ? classifyGesture(hand) : 'none'
+      const raw = hand ? classifyGesture(hand, gesture.value) : 'none'
       if (raw === candidate) candidateCount++
       else {
         candidate = raw
         candidateCount = 1
       }
-      if (candidateCount >= stableFrames) gesture.value = candidate
+      // Pinch braucht weniger Bilder, damit sich der Klick direkt anfühlt
+      const noetig = candidate === 'pinch' ? Math.min(2, stableFrames) : stableFrames
+      if (candidateCount >= noetig) gesture.value = candidate
 
       frames++
       const now = performance.now()

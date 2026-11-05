@@ -30,6 +30,7 @@ npm test         # Unit-Tests: useCounter + Gestenerkennung
 |---|---|
 | 👆 Zeigefinger | Cursor folgt der Fingerspitze |
 | 🤏 Daumen + Zeigefinger | Klick auf Button unter dem Cursor, Regler ziehen |
+| ⏱️ 1 s auf einem Button verweilen | Klick ohne Pinch (Sicherheitsnetz) |
 | ✋ Offene Hand 1,2 s halten | Dark Mode umschalten |
 | 👍 Daumen hoch 0,7 s halten | Seite sagt „Danke, ‹Name›!“ |
 

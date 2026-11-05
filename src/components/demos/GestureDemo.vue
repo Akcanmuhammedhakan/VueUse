@@ -43,6 +43,7 @@ const { speak, isSupported: sprachausgabe } = useSpeechSynthesis(dankeText, { la
 const gesten: { id: Gesture; emoji: string; name: string; aktion: string }[] = [
   { id: 'pointing', emoji: '👆', name: 'Zeigefinger', aktion: 'Cursor steuern' },
   { id: 'pinch', emoji: '🤏', name: 'Daumen + Zeigefinger', aktion: 'Klicken / Regler ziehen' },
+  { id: 'pointing', emoji: '⏱️', name: '1 s auf Button zeigen', aktion: 'Klickt auch (ohne Pinch)' },
   { id: 'open_palm', emoji: '✋', name: 'Offene Hand halten', aktion: 'Dark Mode umschalten' },
   { id: 'thumbs_up', emoji: '👍', name: 'Daumen hoch halten', aktion: 'Seite bedankt sich' },
 ]
@@ -53,10 +54,34 @@ const cursor = ref({ x: 0, y: 0 })
 const handSichtbar = computed(() => kameraAn.value && pointer.value !== null)
 let hoverEl: HTMLElement | null = null
 
-function elementUnterCursor(): HTMLElement | null {
-  const el = document.elementFromPoint(cursor.value.x, cursor.value.y)
+function elementAn(x: number, y: number): HTMLElement | null {
+  const el = document.elementFromPoint(x, y)
   return (el?.closest('button, input[type="range"]') as HTMLElement | null) ?? null
 }
+const elementUnterCursor = () => elementAn(cursor.value.x, cursor.value.y)
+
+// Beim Zusammenführen von Daumen + Zeigefinger wandert die Fingerspitze nach unten.
+// Darum merken wir uns die Cursor-Positionen der letzten Zeit und klicken dort,
+// wo der Cursor kurz VOR dem Pinch stand.
+const VERLAUF_MS = 250
+const verlauf: { t: number; x: number; y: number }[] = []
+function positionVorPinch() {
+  const grenze = performance.now() - VERLAUF_MS
+  return verlauf.find((p) => p.t >= grenze) ?? { x: cursor.value.x, y: cursor.value.y }
+}
+
+function klicken(el: HTMLElement | null) {
+  if (el instanceof HTMLButtonElement && !el.disabled) el.click()
+  klickBlitz.value = true
+  setTimeout(() => (klickBlitz.value = false), 250)
+}
+
+// Verweil-Klick als Sicherheitsnetz: Cursor 1 s still auf einem Button → Klick
+const VERWEILEN_MS = 1000
+let verweilEl: HTMLElement | null = null
+let verweilStart = 0
+let verweilFertig = false
+const verweilFortschritt = ref(0)
 
 function setHover(el: HTMLElement | null) {
   if (el === hoverEl) return
@@ -77,12 +102,15 @@ watch(gesture, (neu, alt) => {
   ausgeloest = false
   halteFortschritt.value = 0
 
-  // Pinch beginnt → Klick auf das Element unter dem Cursor
+  // Pinch beginnt → Klick dort, wo der Cursor kurz vorher stand
   if (neu === 'pinch' && alt !== 'pinch') {
-    const el = elementUnterCursor()
-    if (el instanceof HTMLButtonElement && !el.disabled) el.click()
-    klickBlitz.value = true
-    setTimeout(() => (klickBlitz.value = false), 250)
+    const p = positionVorPinch()
+    const el = elementAn(p.x, p.y)
+    if (!(el instanceof HTMLInputElement)) {
+      cursor.value = { x: p.x, y: p.y } // Cursor zurück auf den Button springen lassen
+      klicken(el)
+      verweilFertig = true // kein zweiter Klick durchs Verweilen
+    }
   }
 })
 
@@ -99,19 +127,48 @@ function reglerZiehen(el: HTMLInputElement) {
 }
 
 useRafFn(() => {
-  // Cursor weich nachziehen
+  // Cursor weich nachziehen: kleine Bewegungen stark glätten (kein Zittern),
+  // große Bewegungen schnell folgen lassen
   if (pointer.value) {
     const zielX = pointer.value.x * width.value
     const zielY = pointer.value.y * height.value
-    cursor.value = {
-      x: cursor.value.x + (zielX - cursor.value.x) * 0.35,
-      y: cursor.value.y + (zielY - cursor.value.y) * 0.35,
-    }
+    const dx = zielX - cursor.value.x
+    const dy = zielY - cursor.value.y
+    const weg = Math.hypot(dx, dy)
+    const faktor = weg < 6 ? 0.08 : weg < 40 ? 0.25 : 0.5
+    // während des Pinch-Klicks auf Buttons stillhalten
+    const festhalten = gesture.value === 'pinch' && !(hoverEl instanceof HTMLInputElement)
+    if (!festhalten) cursor.value = { x: cursor.value.x + dx * faktor, y: cursor.value.y + dy * faktor }
+
+    const jetzt = performance.now()
+    verlauf.push({ t: jetzt, x: cursor.value.x, y: cursor.value.y })
+    while (verlauf.length && verlauf[0].t < jetzt - 1000) verlauf.shift()
+
     const el = elementUnterCursor()
     setHover(el)
     if (gesture.value === 'pinch' && el instanceof HTMLInputElement) reglerZiehen(el)
+
+    // Verweil-Klick
+    const knopf = el instanceof HTMLButtonElement && !el.disabled ? el : null
+    if (knopf !== verweilEl) {
+      verweilEl = knopf
+      verweilStart = jetzt
+      verweilFertig = false
+    }
+    if (knopf && !verweilFertig && gesture.value !== 'pinch') {
+      verweilFortschritt.value = Math.min(1, (jetzt - verweilStart) / VERWEILEN_MS)
+      if (verweilFortschritt.value >= 1) {
+        verweilFertig = true
+        klicken(knopf)
+      }
+    } else {
+      verweilFortschritt.value = 0
+    }
   } else {
     setHover(null)
+    verweilEl = null
+    verweilFortschritt.value = 0
+    verlauf.length = 0
   }
 
   // Halte-Gesten
@@ -193,7 +250,7 @@ const status = computed(() => {
       </label>
 
       <ul class="gesten">
-        <li v-for="g in gesten" :key="g.id" :class="{ aktiv: gesture === g.id }">
+        <li v-for="g in gesten" :key="g.name" :class="{ aktiv: gesture === g.id }">
           <span class="emoji">{{ g.emoji }}</span>
           <span class="text">
             <strong>{{ g.name }}</strong>
@@ -215,8 +272,13 @@ const status = computed(() => {
       v-if="handSichtbar"
       class="gesten-cursor"
       :class="{ pinch: gesture === 'pinch', blitz: klickBlitz }"
-      :style="{ transform: `translate(${cursor.x}px, ${cursor.y}px)` }"
-    />
+      :style="{
+        transform: `translate(${cursor.x}px, ${cursor.y}px)`,
+        '--verweilen': `${verweilFortschritt * 360}deg`,
+      }"
+    >
+      <span v-if="verweilFortschritt > 0" class="verweil-ring" />
+    </div>
   </Teleport>
 </template>
 
@@ -379,6 +441,14 @@ canvas {
 }
 .gesten-cursor.blitz {
   box-shadow: 0 0 0 14px rgba(227, 169, 59, 0.35);
+}
+.verweil-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: conic-gradient(#e3a93b var(--verweilen), transparent 0);
+  mask: radial-gradient(circle, transparent 58%, #000 60%);
+  -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%);
 }
 .gesture-hover {
   outline: 3px solid #e3a93b !important;

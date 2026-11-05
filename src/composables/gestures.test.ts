@@ -47,6 +47,13 @@ describe('classifyGesture', () => {
     expect(classifyGesture(lm)).toBe('pinch')
   })
 
+  it('hält einen laufenden Pinch etwas länger (Hysterese)', () => {
+    // Abstand knapp über der Startgrenze: neu kein Pinch, laufend schon
+    const lm = hand({ ...alleZu, index: 'out' }, { x: 0.42, y: 0.35 + 0.35 * 0.28 })
+    expect(classifyGesture(lm)).not.toBe('pinch')
+    expect(classifyGesture(lm, 'pinch')).toBe('pinch')
+  })
+
   it('erkennt Daumen hoch', () => {
     expect(classifyGesture(hand(alleZu, { x: 0.3, y: 0.4 }))).toBe('thumbs_up')
   })
