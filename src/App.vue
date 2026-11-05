@@ -3,7 +3,7 @@ import DemoCard from './components/DemoCard.vue'
 import MausDemo from './components/demos/MausDemo.vue'
 import PopupDemo from './components/demos/PopupDemo.vue'
 import BrowserDemo from './components/demos/BrowserDemo.vue'
-import CounterDemo from './components/demos/CounterDemo.vue'
+import AutosaveDemo from './components/demos/AutosaveDemo.vue'
 import GestureDemo from './components/demos/GestureDemo.vue'
 import { useTheme } from './composables/useTheme'
 
@@ -32,8 +32,12 @@ const { isDark, toggleDark } = useTheme()
     <DemoCard :nummer="3" titel="Browser-APIs reaktiv" :composables="['useOnline', 'useWindowSize', 'useClipboard']">
       <BrowserDemo />
     </DemoCard>
-    <DemoCard :nummer="4" titel="Eigenes Composable" :composables="['useCounter (eigen)', 'useTitle']">
-      <CounterDemo />
+    <DemoCard
+      :nummer="4"
+      titel="Formular speichert sich selbst"
+      :composables="['useAutosave (eigen)', 'useLocalStorage', 'useDebounceFn', 'useNow']"
+    >
+      <AutosaveDemo />
     </DemoCard>
     <DemoCard
       class="breit"
